@@ -16,7 +16,7 @@ const listFood = async (req, res) => {
 // add food
 const addFood = async (req, res) => {
 
-    let image_filename = `${req.file.filename}`
+    let image_filename = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`
 
     const food = new foodModel({
         name: req.body.name,
@@ -39,7 +39,7 @@ const removeFood = async (req, res) => {
     try {
 
         const food = await foodModel.findById(req.body.id);
-        fs.unlink(`uploads/${food.image}`, () => { })
+        if (!food.image.startsWith("data:")) fs.unlink(`uploads/${food.image}`, () => { })
 
         await foodModel.findByIdAndDelete(req.body.id)
         res.json({ success: true, message: "Food Removed" })
