@@ -1,5 +1,6 @@
 import foodModel from "../models/foodModel.js";
 import fs from 'fs'
+import { sampleFoods, sampleDescription } from "../config/sampleFoods.js";
 
 // all food list
 const listFood = async (req, res) => {
@@ -39,7 +40,7 @@ const removeFood = async (req, res) => {
     try {
 
         const food = await foodModel.findById(req.body.id);
-        if (!food.image.startsWith("data:")) fs.unlink(`uploads/${food.image}`, () => { })
+        if (!/^(data:|https?:)/.test(food.image)) fs.unlink(`uploads/${food.image}`, () => { })
 
         await foodModel.findByIdAndDelete(req.body.id)
         res.json({ success: true, message: "Food Removed" })
@@ -51,4 +52,23 @@ const removeFood = async (req, res) => {
 
 }
 
-export { listFood, addFood, removeFood }
+// load the sample menu into an empty database
+const seedFood = async (req, res) => {
+    try {
+        if (await foodModel.countDocuments() > 0) {
+            return res.json({ success: false, message: "Menu already has items, nothing added" })
+        }
+        const frontend_url = process.env.FRONTEND_URL || "http://localhost:5173"
+        await foodModel.insertMany(sampleFoods.map((food) => ({
+            ...food,
+            description: sampleDescription,
+            image: `${frontend_url}/food/${food.image}`,
+        })))
+        res.json({ success: true, message: `Added ${sampleFoods.length} sample items` })
+    } catch (error) {
+        console.log(error);
+        res.json({ success: false, message: "Error" })
+    }
+}
+
+export { listFood, addFood, removeFood, seedFood }
